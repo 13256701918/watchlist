@@ -11,6 +11,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import url_for, escape,Flask,render_template
 # ...
 app = Flask(__name__)
+
+
 WIN=sys.platform.startswith('win')
 if WIN:
     prefix = 'sqlite:///'
@@ -18,7 +20,6 @@ else:
     prefix = 'sqlite:////'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对模型修改的监控
 app.config['SQLALCHEMY_DATABASE_URI'] = prefix + os.path.join(app.root_path, 'data.db')
-
 db = SQLAlchemy(app)
 name = 'vjaor'
 @app.cli.command()
@@ -60,16 +61,24 @@ def forge():
         
     db.session.commit()
     click.echo('Done.')
-    
+  
+@app.context_processor
+def inject_user():
+    user = User.query.first()
+    return dict(user=user)
+
 @app.route('/')
 def index():
-    user = User.query.first()
-    movies = Movie.query.first()
-    return render_template('index.html',name=name,movies=movies)
+    movies = Movie.query.all()
+    return render_template('index.html',movies=movies)
 
 @app.route('/user/<name>')
 def user_page(name):
     return 'User: %s' % escape(name)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'),404
 
 @app.route('/test')
 def test_url_for():
